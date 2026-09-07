@@ -6,6 +6,10 @@
 
 ---
 
+> 🔒 **History rewrite — privacy cleanup** (2026-09-07): the repository history was rewritten to remove sensitive information from earlier public examples (commit hashes changed, force push). See [HISTORY_NOTICE.md](HISTORY_NOTICE.md).
+
+---
+
 ## Abstract
 
 AI can generate a lot of content, but generating a lot is not the same as doing good work. Given the same AI output, different users handle it very differently: some accept it as-is, some polish it sentence by sentence, and some make just a few critical judgments that change the direction of the result.
