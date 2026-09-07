@@ -68,7 +68,7 @@ The basic unit is a **task event**: one AI collaboration task from original gene
 - `O0` (original output, frozen and immutable), `O1` (final output)
 - `interventions[]` (list: text, type, timestamp)
 - `I` (intervention amount)
-- `C1` (0/1), `C2` (1/0/pending), `C2_note` (basis for confirmation)
+- `C1` (0/0.5/1), `C2` (0–1/percentage/pending), `C2_source` (user/landing/auto_timeout/auto_confirm), `C2_note` (basis for confirmation)
 - Timestamps (created / confirmed / second confirmation)
 
 Full field definitions: [`schema/hclr-record.schema.json`](schema/hclr-record.schema.json)
@@ -96,13 +96,23 @@ Three metrics are supported; declare which one is used:
 
 ### 3.5 Double Confirmation
 
-**First confirmation C1** (generation stage): whether the user adopts the result — `1` adopted / `0` not adopted.
+**First confirmation C1** (generation stage): whether the user adopts the result — `1` adopted / `0.5` partially adopted (with minor edits) / `0` not adopted.
 
-**Second confirmation C2** (after the result reaches the audience): whether the audience recognizes it, based on real feedback — `1` recognized / `0` not recognized / `∅` pending.
+**Second confirmation C2** (after the result reaches the audience): whether the audience recognizes it, based on real feedback — `1` recognized / `0.5` partially recognized (e.g. ~90% with minor edits) / `0` not recognized; any acceptance percentage may be recorded (e.g. 25%); `∅` pending.
+
+**C2 automated closed-loop collection** (confirmation never stalls on missing feedback):
+
+| Source | Trigger | Value |
+|---|---|---|
+| `landing` | Result landed locally (saved/executed and not revoked by the user) | treated as 100% recognized |
+| `user` | User explicitly returns an acceptance level | as returned |
+| `auto_timeout` | No response within 24 h of a confirmation request | defaulted to recognized |
+| `auto_confirm` | Still no response after an active follow-up confirmation | default accepted |
 
 - C2 is the user's interpretation of **real feedback**, not a prediction made at generation time, and does not require researchers to survey the audience directly;
-- **Pending is not failure**: tasks without sufficient feedback are recorded as pending and must not be counted as 0; delayed feedback is backfilled to the **original task batch**;
-- Reports should disclose the pending ratio.
+- **Landing equals confirmation**: a result actually saved/executed and not revoked is the strongest implicit signal of recognition and needs no separate prompt;
+- **Pending is not failure**: when feedback is insufficient, the closed-loop rules above supply a default so the pipeline never stalls; delayed feedback can be backfilled and override the default;
+- User-explicit values and automatic defaults are counted separately (explicit recognition rate vs. closed-loop recognition rate); reports should disclose the share of each source.
 
 **Result states:**
 
@@ -110,8 +120,8 @@ Three metrics are supported; declare which one is used:
 |---|---|---|---|
 | S0 | 0 | — | Not adopted |
 | S1 | 1 | ∅ | Adopted, pending confirmation |
-| S2 | 1 | 0 | Adopted, not recognized |
-| S3 | 1 | 1 | Adopted and recognized |
+| S2 | 1 | < 0.5 | Adopted, not recognized |
+| S3 | 1 | ≥ 0.5 | Adopted and recognized (incl. partial) |
 
 ## 4. Scoring & Reporting
 
