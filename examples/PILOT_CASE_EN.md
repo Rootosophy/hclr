@@ -67,3 +67,15 @@ Result states:
 - **Counterfactual control**: unified metric (chars); pilot-001–005 share one model (v4 flash) and pilot-006–010 share one model (v4 pro), so longitudinal comparison holds within each phase.
 
 Raw records are kept locally under `pilot-data/` (consistent with the LICENSE: full user conversation records are not published).
+
+## Mandatory Anonymization for examples/
+
+Data in every public document under `examples/` **must** be anonymized before it is generated/updated; no anonymization, no publication:
+
+1. **Company / organization / brand names**: must not appear (enterprise, brand, or business-line names are generalized or removed);
+2. **Third-party names**: vendors / providers / platforms are generalized to "vendor / provider / platform";
+3. **Personal names**: real names and "surname + title" combinations are removed and replaced by roles (e.g. "the lead");
+4. **Amounts and contracts**: specific amounts and fee structures must not appear — use relative descriptions (e.g. "the platform license fee is an annual fee");
+5. **Internal information**: internal project codes (e.g. meeting-record filenames), paths, and internal strategies must not appear;
+6. **May be kept**: O/I values, HCLR, C1/C2/state, domain (generalized) and anonymized example interventions — for reproduction and validation;
+7. Before publication, run a sensitive-term scan (company/vendor/person/amount/code); any hit must be anonymized first.

@@ -84,7 +84,8 @@ C2 (second round, after actual use): approved / partial / rejected (or a custom 
 ## 7. Privacy & Data
 
 - Raw records (including full conversations) are **stored locally**, not published with the public repository;
-- Public examples (e.g. [examples/PILOT_CASE_EN.md](examples/PILOT_CASE_EN.md)) are **anonymized**;
+- **Mandatory anonymization for examples/**: all data entering public examples must be anonymized first — company/brand/vendor names generalized, personal names replaced by roles, amounts turned into relative descriptions, and internal project codes/paths removed; structured values (O/I/C1/C2/state) and anonymized example interventions may be kept;
+- Before publication, run a sensitive-term scan (company/vendor/person/amount/code); any hit must be anonymized first; full rules at the end of [examples/PILOT_CASE_EN.md](examples/PILOT_CASE_EN.md);
 - Per-record guidance: O0/O1 may keep anonymized text; real names, audience identities, and full feedback are not required fields.
 
 ## 8. Reference Implementation
