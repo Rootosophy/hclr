@@ -23,8 +23,9 @@ HCLR = ΣO / ΣI
 | 介入 | 使用者针对模型输出的反馈/纠正/约束/方向调整（不计任务描述） |
 | O1 | 介入后的最终成果 |
 | C1 | 第一轮确认（adopt / partial / reject）——成果是否被采纳 |
-| C2 | 第二轮确认（approved / rejected / pending）——成果是否获受众认可 |
-| 状态 | S0未采用 / S1已采用待确认 / S2已采用未获认可 / S3已采用并获认可 |
+| C2 | 第二轮确认（approved / partial / rejected / pending，或自定义采纳率）——成果是否获受众认可 |
+| C2_source | C2来源：user（显式）/ landing（落地即确认）/ auto_timeout（24h默认）/ auto_confirm（采信） |
+| 状态 | S0未采用 / S1已采用待确认 / S2已采用未获认可（C2<0.5）/ S3已采用并获认可（C2≥0.5） |
 
 ## 3. 采集时机（钩子）
 
@@ -45,7 +46,7 @@ HCLR = ΣO / ΣI
 task_id, domain, model, audience,
 task_description（不计I）, O0, O1, O_total,
 interventions[ {seq, text, kind, timestamp} ], I, I_metric,
-C1, C1_note, C2, C2_note, status, created_at, period
+C1, C1_note, C2, C2_note, C2_source, c2_requested_at, status, created_at, period
 ```
 
 ## 5. 口径规则
@@ -56,18 +57,29 @@ C1, C1_note, C2, C2_note, status, created_at, period
 4. 测量边界：Token只测显性表达形式，不测认知成本与信息价值；使用者可通过压缩表达、合并命题、省略依据人为抬高比率——**采集时须保留原始记录以便复核**。
 5. 单样本即可运行：`HCLR_j = O_j/I_j` 在第一个任务事件产生时即可计算；多样本用于趋势与稳定性。
 
-## 6. 确认流程（双重确认）
+## 6. 确认流程（双重确认 + C2 自动闭环）
 
 ```text
 C1（第一轮，会话结束时）: adopt / partial / reject
   → 采纳进入S1，未采纳进入S0
-C2（第二轮，成果实际使用后）: approved / rejected / pending
-  → 认可进入S3，未认可进入S2，无反馈保持"待确认"
+C2（第二轮，成果实际使用后）: approved / partial / rejected（或自定义采纳率）
+  → 认可（≥0.5）进入S3，未认可（<0.5）进入S2
 ```
 
+**C2 自动闭环采集**（确认不因缺失反馈而中断）：
+
+| 来源 | 触发条件 | 取值 |
+|---|---|---|
+| `landing` | 成果已在本地落地（保存/执行完成且使用者未撤销） | 视为 100% 认可 |
+| `user` | 使用者显式返回认可度 | 按返回值 |
+| `auto_timeout` | 发出确认请求后 24 小时未响应 | 默认视为认可 |
+| `auto_confirm` | 主动再次确认后仍未响应 | 采信默认认可 |
+
 - C1由使用者本人确认；C2以真实受众反馈为准；
-- 延迟结果回填原批次，不单独计为新任务事件；
-- 缺失反馈记为"待确认"，不猜测。
+- **落地即确认**：成果被实际保存/执行且未被撤销，是认可的最强隐式信号，无需另行询问；
+- **缺失反馈不中断**：超时按上述规则给出默认值并标注来源（auto_timeout / auto_confirm），延迟反馈可回填覆盖；
+- 显式来源（user/landing）与自动默认（auto_timeout/auto_confirm）分开统计，报告须披露各来源占比；
+- 延迟结果回填原批次，不单独计为新任务事件。
 
 ## 7. 隐私与数据
 
@@ -79,8 +91,8 @@ C2（第二轮，成果实际使用后）: approved / rejected / pending
 
 | 组件 | 说明 |
 |---|---|
-| [pilot-data/pilot.py](pilot-data/pilot.py) | 命令行记录工具（new / record / c1 / c2 / report），git忽略，本地使用 |
-| [schema/hclr-record.schema.json](schema/hclr-record.schema.json) | 记录数据格式（v0.2） |
+| [pilot-data/pilot.py](pilot-data/pilot.py) | 命令行记录工具（new / record / c1 / c2 / c2req / pending / report），git忽略，本地使用 |
+| [schema/hclr-record.schema.json](schema/hclr-record.schema.json) | 记录数据格式（v0.3，含 C2_source / c2_requested_at） |
 | 自动化建议 | 在对话系统加消息钩子：assistant输出累加O、user介入累加I、会话结束自动请求C1 |
 
 ## 9. 平台适配

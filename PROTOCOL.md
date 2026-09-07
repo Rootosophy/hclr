@@ -22,9 +22,10 @@ HCLR = ΣO / ΣI
 | O0 | The model's initial generation (frozen, never overwritten) |
 | Intervention | User feedback/correction/constraint/direction aimed at model output (excluding the task description) |
 | O1 | The final output after interventions |
-| C1 | First confirmation (adopt / partial / reject) — whether the output was adopted |
-| C2 | Second confirmation (approved / rejected / pending) — whether the audience recognized the output |
-| State | S0 not adopted / S1 adopted pending / S2 adopted but not recognized / S3 adopted and recognized |
+| C1 | First confirmation (adopt / partial / reject) — whether the output is adopted |
+| C2 | Second confirmation (approved / partial / rejected / pending, or a custom acceptance rate) — whether the audience recognizes it |
+| C2_source | C2 source: user (explicit) / landing (landing equals confirmation) / auto_timeout (24h default) / auto_confirm (accepted after follow-up) |
+| State | S0 not adopted / S1 adopted, pending / S2 adopted, not recognized (C2<0.5) / S3 adopted and recognized (C2≥0.5) |
 
 ## 3. Collection Triggers (Hooks)
 
@@ -45,7 +46,7 @@ One-to-one with [schema/hclr-record.schema.json](schema/hclr-record.schema.json)
 task_id, domain, model, audience,
 task_description (excluded from I), O0, O1, O_total,
 interventions[ {seq, text, kind, timestamp} ], I, I_metric,
-C1, C1_note, C2, C2_note, status, created_at, period
+C1, C1_note, C2, C2_note, C2_source, c2_requested_at, status, created_at, period
 ```
 
 ## 5. Measurement Rules
@@ -56,18 +57,29 @@ C1, C1_note, C2, C2_note, status, created_at, period
 4. Measurement boundary: tokens measure explicit expression form only — not cognitive cost or information value; users can inflate the ratio by compressing expression, merging propositions, or omitting rationale — **keep raw records for audit**.
 5. A single sample is sufficient to run: `HCLR_j = O_j/I_j` is computable from the first task event; more samples serve trends and stability.
 
-## 6. Confirmation Flow (Double Confirmation)
+## 6. Confirmation Flow (Double Confirmation + C2 Auto Closed-Loop)
 
 ```text
 C1 (first round, at session end): adopt / partial / reject
   → adopted enters S1; not adopted enters S0
-C2 (second round, after actual use): approved / rejected / pending
-  → recognized enters S3; not recognized enters S2; no feedback stays "pending"
+C2 (second round, after actual use): approved / partial / rejected (or a custom acceptance rate)
+  → recognized (≥0.5) enters S3; not recognized (<0.5) enters S2
 ```
 
+**C2 automated closed-loop collection** (confirmation never stalls on missing feedback):
+
+| Source | Trigger | Value |
+|---|---|---|
+| `landing` | Output landed locally (saved/executed and not revoked by the user) | treated as 100% recognized |
+| `user` | User explicitly returns an acceptance level | as returned |
+| `auto_timeout` | No response within 24 h of a confirmation request | defaulted to recognized |
+| `auto_confirm` | Still no response after an active follow-up confirmation | default accepted |
+
 - C1 is confirmed by the user; C2 is based on real audience feedback;
-- Delayed results are backfilled to the original batch, not counted as new task events;
-- Missing feedback is recorded as "pending" — never guessed.
+- **Landing equals confirmation**: an output actually saved/executed and not revoked is the strongest implicit signal of recognition and needs no separate prompt;
+- **Missing feedback does not stall the pipeline**: timeouts receive a default with its source (auto_timeout / auto_confirm); delayed feedback can be backfilled and override it;
+- Explicit sources (user / landing) and automatic defaults (auto_timeout / auto_confirm) are counted separately; reports should disclose the share of each source;
+- Delayed results are backfilled to the original batch, not counted as new task events.
 
 ## 7. Privacy & Data
 
@@ -79,8 +91,8 @@ C2 (second round, after actual use): approved / rejected / pending
 
 | Component | Note |
 |---|---|
-| [pilot-data/pilot.py](pilot-data/pilot.py) | CLI recording tool (new / record / c1 / c2 / report); git-ignored, local use |
-| [schema/hclr-record.schema.json](schema/hclr-record.schema.json) | Record data format (v0.2) |
+| [pilot-data/pilot.py](pilot-data/pilot.py) | CLI recording tool (new / record / c1 / c2 / c2req / pending / report); git-ignored, local use |
+| [schema/hclr-record.schema.json](schema/hclr-record.schema.json) | Record data format (v0.3, incl. C2_source / c2_requested_at) |
 | Automation suggestion | Add message hooks to the conversation system: assistant outputs accumulate O, user interventions accumulate I, auto-request C1 at session end |
 
 ## 9. Platform Adaptation

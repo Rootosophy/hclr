@@ -21,7 +21,7 @@
   ],
   "properties": {
     "schema_version": {
-      "const": "0.2"
+      "const": "0.3"
     },
     "task_id": {
       "type": "string",
@@ -114,28 +114,48 @@
       "description": "介入量口径：自动记录场景chars/tokens，人工记录场景judgments；同一曲线内不得混用"
     },
     "C1": {
-      "type": "integer",
+      "type": "number",
       "enum": [
         0,
+        0.5,
         1
       ],
-      "description": "第一轮确认：1=已采纳，0=未采纳（结果状态记录，不进公式）"
+      "description": "第一轮确认：1=已采纳，0.5=部分采纳（有少量修改），0=未采纳（结果状态记录，不进公式）"
     },
     "C2": {
       "type": [
-        "integer",
+        "number",
         "null"
       ],
-      "enum": [
-        1,
-        0,
-        null
-      ],
-      "description": "第二轮确认：1=认可，0=未认可，null=待确认（结果状态记录，不进公式）"
+      "minimum": 0,
+      "maximum": 1,
+      "description": "第二轮确认：1=认可，0.5=部分认可，0-1间任意认可度（如0.25=25%采纳），null=待确认（结果状态记录，不进公式）"
     },
     "C2_note": {
       "type": "string",
       "description": "第二轮确认依据（真实受众反馈描述）"
+    },
+    "C2_source": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "user",
+        "landing",
+        "auto_timeout",
+        "auto_confirm",
+        null
+      ],
+      "description": "C2确认来源：user=使用者显式返回；landing=成果本地落地(保存/执行完成且未撤销)即视为100%认可；auto_timeout=发出确认请求后24h无响应默认认可；auto_confirm=主动再次确认后仍无响应采信默认认可"
+    },
+    "c2_requested_at": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time",
+      "description": "C2确认请求时间（结论性输出时记录，用于24h超时判断）"
     },
     "status": {
       "type": "string",

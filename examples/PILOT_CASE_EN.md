@@ -1,6 +1,6 @@
 # HCLR Empirical Case: Conversation-Embedded Pilot
 
-> Version: 2026-08-30 ｜ Model environment: DeepSeek v4 flash (pilot-001–005) / v4 pro (pilot-006–010)
+> Version: 2026-09-07 ｜ Model environment: DeepSeek v4 flash (pilot-001–005) / v4 pro (pilot-006–010)
 
 ## Background
 
@@ -19,14 +19,15 @@ After publishing the HCLR method manuscript, a **conversation-embedded collectio
 | I (denominator) | Total user intervention tokens (or chars), **excluding the initial task description** |
 | HCLR | O / I (output/intervention leverage ratio) |
 | C1 (first confirmation) | Result state: adopt / partial / reject |
-| C2 (second confirmation) | Result state: approved / partial / rejected / pending (or custom adoption rate pctN) |
+| C2 (second confirmation) | Result state: approved / partial / rejected / pending (or custom adoption rate pctN); source: user (explicit) / landing (landing equals confirmation) / auto_timeout (24h default) / auto_confirm (accepted after follow-up) |
 
 ## Process
 
 1. At the close of each topical conversation, the assistant requests C1 (one-line reply);
 2. P is suggested by the assistant and confirmed by the user;
-3. A summary report is generated every 10 tasks or weekly;
-4. Raw records stay local (not published in the repository, to protect privacy).
+3. At a conclusive output, the assistant requests C2; an output landed locally (saved/executed and not revoked) counts as 100% recognition (landing); no response within 24 h defaults to recognition (auto_timeout), and an active follow-up with no response accepts the default (auto_confirm) — confirmation never stalls on missing feedback;
+4. A summary report is generated every 10 tasks or weekly;
+5. Raw records stay local (not published in the repository, to protect privacy).
 
 ## Sample Data (10 Tasks)
 
@@ -52,11 +53,11 @@ Numerator O (model output chars total): 21595 | avg per task: 2160
 Denominator I (intervention chars total, excluding task description): 1033 | avg per task: 103
 Result states:
   Post-intervention adoption rate (C1 incl. partial): 10/10 = 100%
-  Confirmed recognition rate (full C2=1): 2/5 = 40%
-  Confirmed recognition rate (incl. partial C2>=0.5): 4/5 = 80%
+  Explicit recognition rate (source=user, C2>=0.5): 4/5 = 80%
+  Closed-loop recognition rate (incl. auto, C2>=0.5): 4/5 = 80%
 ```
 
-> Note: O/I are computed from real message statistics in the Hermes session database (O = assistant text chars total; I = user intervention chars total, excluding the initial task description). pilot-001–005 used deepseek-v4-flash; pilot-006–010 used deepseek-v4-pro. C1 is confirmed for all 10 tasks (10/10 adopted, incl. pilot-001 partial). pilot-001–005 are methodology-document outputs with no C2 yet; pilot-006–010 have C2 confirmed (approved×2, partial×2, pct25×1). pilot-007/008/010 had no interventions (I=0), so HCLR is undefined (shown as "-") — the single-round output was adopted without corrections; pilot-010 was only 25% adopted: the draft was too formal, and the user rewrote it in a colloquial style for finalization.
+> Note: O/I are computed from real message statistics in the Hermes session database (O = assistant text chars total; I = user intervention chars total, excluding the initial task description). pilot-001–005 used deepseek-v4-flash; pilot-006–010 used deepseek-v4-pro. C1 is confirmed for all 10 tasks (10/10 adopted, incl. pilot-001 partial). pilot-001–005 are methodology-document outputs with no C2 yet (under the closed-loop protocol, their confirmation requests will default to closed after timeout rather than staying pending); pilot-006–010 have C2 confirmed (approved×2, partial×2, pct25×1), all explicitly by the user (source=user). pilot-007/008/010 had no interventions (I=0), so HCLR is undefined (shown as "-") — the single-round output was adopted without corrections; pilot-010 was only 25% adopted: the draft was too formal, and the user rewrote it in a colloquial style for finalization.
 
 ## Significance
 
